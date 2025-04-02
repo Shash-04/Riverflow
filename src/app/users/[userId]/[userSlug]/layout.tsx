@@ -8,14 +8,18 @@ import Navbar from "./Navbar";
 import { IconClockFilled, IconUserFilled } from "@tabler/icons-react";
 import Header from "@/app/components/Header";
 
-const Layout = async ({
-    children,
-    params,
-}: {
+export default async function Layout({ 
+    children, 
+    params 
+  }: { 
     children: React.ReactNode;
     params: { userId: string; userSlug: string };
-}) => {
-    const user = await users.get<UserPrefs>(params.userId);
+  }) {
+    // Create a new variable
+    const { userId } = await params;
+
+    
+    const user = await users.get<UserPrefs>(userId);
 
     return (
         <div className="container mx-auto space-y-4 px-4 pb-20 pt-32">
@@ -57,4 +61,4 @@ const Layout = async ({
     );
 };
 
-export default Layout;
+export const dynamicParams = true;

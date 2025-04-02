@@ -3,17 +3,13 @@ import { databases } from "@/models/server/config";
 import React from "react";
 import EditQues from "./EditQues";
 
-// Add this type definition to match Next.js's expectations
-type PageProps = {
-  params: { quesId: string; quesName: string };
-  searchParams?: Record<string, string | string[] | undefined>;
-};
+const Page = async (props: { params: { quesId: string; quesName: string } }) => {
+    // Ensure params is resolved before using it
+    const { quesId } = await Promise.resolve(props.params);
 
-// Use the correct type annotation
-const Page = async ({ params }: PageProps) => {
-  const question = await databases.getDocument(db, questionCollection, params.quesId);
+    const question = await databases.getDocument(db, questionCollection, quesId);
 
-  return <EditQues question={question} />;
+    return <EditQues question={question} />;
 };
 
 export default Page;

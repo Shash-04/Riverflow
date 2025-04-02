@@ -14,19 +14,21 @@ const Page = async ({
     params: { userId: string; userSlug: string };
     searchParams: { page?: string };
 }) => {
-    searchParams.page ||= "1";
+    // Await params and searchParams
+    const { userId } = await params;
+    const { page = "1" } = await searchParams;
 
     const queries = [
-        Query.equal("authorId", params.userId),
+        Query.equal("authorId", userId),
         Query.orderDesc("$createdAt"),
-        Query.offset((+searchParams.page - 1) * 25),
+        Query.offset((+page - 1) * 25),
         Query.limit(25),
     ];
 
     const answers = await databases.listDocuments(db, answerCollection, queries);
 
     answers.documents = await Promise.all(
-        answers.documents.map(async ans => {
+        answers.documents.map(async (ans) => {
             const question = await databases.getDocument(db, questionCollection, ans.questionId, [
                 Query.select(["title"]),
             ]);
@@ -40,7 +42,7 @@ const Page = async ({
                 <p>{answers.total} answers</p>
             </div>
             <div className="mb-4 max-w-3xl space-y-6">
-                {answers.documents.map(ans => (
+                {answers.documents.map((ans) => (
                     <div key={ans.$id}>
                         <div className="max-h-40 overflow-auto">
                             <MarkdownPreview source={ans.content} className="rounded-lg p-4" />

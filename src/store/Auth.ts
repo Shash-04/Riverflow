@@ -61,25 +61,54 @@ export const useAuthStore = create<IAuthStore>()(
 
             async login(email: string, password: string) {
                 try {
-                    const session = await account.createEmailPasswordSession(email, password)
+                    // First check if there's an active session
+                    try {
+                        const currentSession = await account.getSession("current");
+                        
+                        // If we already have a session, try to get user and JWT
+                        try {
+                            const [user, { jwt }] = await Promise.all([
+                                account.get<UserPrefs>(),
+                                account.createJWT()
+                            ]);
+                            
+                            // Set state and return success
+                            set({ session: currentSession, user, jwt });
+                            return { success: true };
+                        } catch (userError) {
+                            // If we couldn't get user with the existing session,
+                            // delete the session and proceed with new login
+                            await account.deleteSession("current");
+                        }
+                    } catch (sessionError) {
+                        // No active session, continue with login
+                    }
+                    
+                    // Create new session
+                    const session = await account.createEmailPasswordSession(email, password);
                     const [user, { jwt }] = await Promise.all([
                         account.get<UserPrefs>(),
                         account.createJWT()
-                    ])
-                    if (!user.prefs?.reputation) await account.updatePrefs<UserPrefs>({
-                        reputation: 0
-                    })
-                    set({ session, user, jwt })
-                    return { success: true }
+                    ]);
+                    
+                    if (!user.prefs?.reputation) {
+                        await account.updatePrefs<UserPrefs>({
+                            reputation: 0
+                        });
+                    }
+                    
+                    set({ session, user, jwt });
+                    return { success: true };
                 } catch (error) {
-                    console.log(error)
+                    console.log(error);
                     return {
                         success: false,
                         error: error instanceof AppwriteException ?
                             error : null
-                    }
+                    };
                 }
             },
+            
             async createAccount(name: string, email: string, password: string) {
                 try {
                     await account.create(ID.unique(), email, password, name)
@@ -93,6 +122,7 @@ export const useAuthStore = create<IAuthStore>()(
                     }
                 }
             },
+            
             async logout() {
                 try {
                     await account.deleteSessions()

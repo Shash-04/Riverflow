@@ -13,29 +13,31 @@ const Page = async ({
     params: { userId: string; userSlug: string };
     searchParams: { page?: string };
 }) => {
-    searchParams.page ||= "1";
+    // Await params and searchParams before using them
+    const { userId } = await params;
+    const { page = "1" } = await searchParams;
 
     const queries = [
-        Query.equal("authorId", params.userId),
+        Query.equal("authorId", userId),
         Query.orderDesc("$createdAt"),
-        Query.offset((+searchParams.page - 1) * 25),
+        Query.offset((+page - 1) * 25),
         Query.limit(25),
     ];
 
     const questions = await databases.listDocuments(db, questionCollection, queries);
 
     questions.documents = await Promise.all(
-        questions.documents.map(async ques => {
+        questions.documents.map(async (ques) => {
             const [author, answers, votes] = await Promise.all([
                 users.get<UserPrefs>(ques.authorId),
                 databases.listDocuments(db, answerCollection, [
                     Query.equal("questionId", ques.$id),
-                    Query.limit(1), // for optimization
+                    Query.limit(1),
                 ]),
                 databases.listDocuments(db, voteCollection, [
                     Query.equal("type", "question"),
                     Query.equal("typeId", ques.$id),
-                    Query.limit(1), // for optimization
+                    Query.limit(1),
                 ]),
             ]);
 
@@ -53,13 +55,12 @@ const Page = async ({
     );
 
     return (
-        
         <div className="px-4">
             <div className="mb-4">
                 <p>{questions.total} questions</p>
             </div>
             <div className="mb-4 max-w-3xl space-y-6">
-                {questions.documents.map(ques => (
+                {questions.documents.map((ques) => (
                     <QuestionCard key={ques.$id} ques={ques} />
                 ))}
             </div>
